@@ -1,9 +1,12 @@
 import pytest
 
+from plenum.test.delayers import cDelay
 from plenum.test.malicious_behaviors_node import delaysCommitProcessing
 from plenum.test.test_node import getNonPrimaryReplicas
 from stp_core.common.log import getlogger
-from plenum.test.helper import sdk_send_random_requests
+from plenum.test.helper import sdk_send_random_requests, get_key_from_req, \
+    sdk_send_random_and_check
+from plenum.test.logging.conftest import logsearch
 
 nodeCount = 4
 logger = getlogger()
@@ -44,7 +47,6 @@ def test_slow_node_has_warn_unordered_log_msg(looper,
                                               sdk_pool_handle,
                                               sdk_wallet_client):
     clear_unordered_requests(*txnPoolNodeSet)
-
     slow_node = getNonPrimaryReplicas(txnPoolNodeSet, 0)[0].node
     delaysCommitProcessing(slow_node, delay=3 * UNORDERED_CHECK_FREQ)
 
@@ -72,3 +74,28 @@ def install_unordered_requests_watcher(monitor):
 def clear_unordered_requests(*nodes):
     for node in nodes:
         node.monitor.unordered_requests = []
+
+
+def test_warn_log(looper,
+         txnPoolNodeSet,
+         sdk_pool_handle,
+         sdk_wallet_client,
+         logsearch,
+         tconf):
+    for node in txnPoolNodeSet:
+        node.nodeIbStasher.delay(cDelay(delay=UNORDERED_CHECK_FREQ*5))
+    log_check_unordered, _ = logsearch(
+        levels=['WARNING '], files=['monitor.py'],
+        funcs=['check_unordered '], msgs=['Following requests '
+                                          'were not ordered for more than']
+    )
+    requests = sdk_send_random_and_check(looper,
+                                         txnPoolNodeSet,
+                                         sdk_pool_handle,
+                                        sdk_wallet_client,
+                                         10,
+                                         total_timeout=UNORDERED_CHECK_FREQ*10)
+    looper.runFor(2 * UNORDERED_CHECK_FREQ)
+    for req, _ in requests:
+        key = get_key_from_req(req)
+        assert any(key in record.getMessage() for record in log_check_unordered)

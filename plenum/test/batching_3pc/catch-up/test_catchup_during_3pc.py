@@ -10,7 +10,7 @@ def tconf(tconf, request):
     oldSize = tconf.Max3PCBatchSize
     oldTimeout = tconf.Max3PCBatchWait
     tconf.Max3PCBatchSize = 10
-    tconf.Max3PCBatchWait = 1
+    tconf.Max3PCBatchWait = 10000
 
     def reset():
         tconf.Max3PCBatchSize = oldSize
@@ -28,6 +28,7 @@ def test_catchup_during_3pc(tconf, looper, txnPoolNodeSet, sdk_wallet_client, sd
     # add txns corresponding to the requests after we got enough COMMITs to
     # order, but before ordering.
     add_txns_to_ledger_before_order(
-        non_primary_replica, [json.loads(req) for req in reqs[:tconf.Max3PCBatchSize]])
+         non_primary_replica, [json.loads(req) for req in reqs[:tconf.Max3PCBatchSize]])
     sdk_send_and_check(reqs, looper, txnPoolNodeSet, sdk_pool_handle)
+    #looper.runFor(20)
     checkNodesHaveSameRoots(txnPoolNodeSet)

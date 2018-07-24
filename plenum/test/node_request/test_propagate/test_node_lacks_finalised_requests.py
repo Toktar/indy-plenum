@@ -1,4 +1,7 @@
 import pytest
+import sys
+
+from plenum.test.batching_3pc.helper import checkNodesHaveSameRoots
 from plenum.test.delayers import ppgDelay, req_delay
 from plenum.test.spy_helpers import get_count, getAllReturnVals
 from plenum.test.test_node import getNonPrimaryReplicas
@@ -28,13 +31,13 @@ def setup(request, txnPoolNodeSet):
     faulty_node = getNonPrimaryReplicas(txnPoolNodeSet, 0)[1].node
     if request.param == 'client_requests':
         # Long delay in PROPAGATEs
-        faulty_node.nodeIbStasher.delay(ppgDelay(90))
+        faulty_node.nodeIbStasher.delay(ppgDelay(sys.maxsize))
         return faulty_node, True
     if request.param == 'no_client_requests':
         # Long delay in PROPAGATEs
-        faulty_node.nodeIbStasher.delay(ppgDelay(90))
+        faulty_node.nodeIbStasher.delay(ppgDelay(sys.maxsize))
         # Long delay in Client Requests
-        faulty_node.clientIbStasher.delay(req_delay(90))
+        faulty_node.clientIbStasher.delay(req_delay(sys.maxsize))
         return faulty_node, False
 
 
@@ -62,7 +65,7 @@ def test_node_request_propagates(looper, setup, txnPoolNodeSet,
                               sdk_pool_handle,
                               sdk_wallet_client,
                               sent_reqs)
-
+    checkNodesHaveSameRoots(txnPoolNodeSet)
     assert get_count(
         faulty_node, faulty_node.processPropagate) > old_count_recv_ppg
     if recv_client_requests:

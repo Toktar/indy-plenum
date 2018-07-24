@@ -9,8 +9,8 @@ from plenum.test.helper import sdk_signed_random_requests, sdk_send_and_check
 def tconf(tconf, request):
     oldSize = tconf.Max3PCBatchSize
     oldTimeout = tconf.Max3PCBatchWait
-    tconf.Max3PCBatchSize = 10
-    tconf.Max3PCBatchWait = 1
+    tconf.Max3PCBatchSize = 3
+    tconf.Max3PCBatchWait = 10
 
     def reset():
         tconf.Max3PCBatchSize = oldSize
@@ -30,7 +30,7 @@ def test_catchup_during_3pc_continue_sending(tconf, looper, txnPoolNodeSet, sdk_
     add_txns_to_ledger_before_order(
         non_primary_replica, [json.loads(req) for req in reqs[:tconf.Max3PCBatchSize]])
 
-    sdk_send_and_check(reqs, looper, txnPoolNodeSet, sdk_pool_handle)
+    sdk_send_and_check(reqs, looper, txnPoolNodeSet, sdk_pool_handle, timeout=1000)
     checkNodesHaveSameRoots(txnPoolNodeSet)
 
     # send another requests and check that they are received

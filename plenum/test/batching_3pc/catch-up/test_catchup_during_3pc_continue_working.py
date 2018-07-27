@@ -30,7 +30,7 @@ def test_catchup_during_3pc_continue_sending(tconf, looper, txnPoolNodeSet, sdk_
     add_txns_to_ledger_before_order(
         non_primary_replica, [json.loads(req) for req in reqs[:tconf.Max3PCBatchSize]])
 
-    sdk_send_and_check(reqs, looper, txnPoolNodeSet, sdk_pool_handle, timeout=1000)
+    sdk_send_and_check(reqs, looper, txnPoolNodeSet, sdk_pool_handle, timeout=100)
     checkNodesHaveSameRoots(txnPoolNodeSet)
 
     # send another requests and check that they are received

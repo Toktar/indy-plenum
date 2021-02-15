@@ -16,7 +16,8 @@ RUN apt-get update -y && apt-get install -y \
     liblz4-dev \
     libsnappy-dev \
     ursa=0.3.2-2  \
-    rocksdb=5.8.8
+    rocksdb=5.8.8 \
+    pip<10.0.0
 
 RUN indy_ci_add_user $uid $user $venv
 

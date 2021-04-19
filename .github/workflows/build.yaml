@@ -4,13 +4,15 @@ on:
     branches:
       - master
       - gha-ubuntu-20.04
+      - ubuntu-20.04
+      - ubuntu-20.04-upgrade
   pull_request:
     branches:
       - master
       - gha-ubuntu-20.04
-
+      - ubuntu-20.04
+      - ubuntu-20.04-upgrade
 jobs:
-
   workflow-setup:
     runs-on: ubuntu-latest
     outputs:
@@ -37,7 +39,7 @@ jobs:
             echo "::set-output name=CACHE_KEY_LINT::${{ hashFiles('.github/workflows/lint/Dockerfile.ubuntu-16-04') }}"
             echo "::set-output name=DOCKER_FILE_POSTFIX::ubuntu-16-04"
           fi
-          if [[ "${{github.base_ref}}" == "gha-ubuntu-20.04" || "${{github.ref}}" == "refs/heads/gha-ubuntu-20.04" ]]; then
+          if [[ "${{github.base_ref}}" == "ubuntu-20.04" || "${{github.ref}}" == "refs/heads/ubuntu-20.04" ||  "${{github.base_ref}}" == "ubuntu-20.04-upgrade" || "${{github.ref}}" == "refs/heads/ubuntu-20.04-upgrade" ]]; then
             echo "::set-output name=CACHE_KEY_BUILD::${{ hashFiles('.github/workflows/build/Dockerfile.ubuntu-20-04') }}"
             echo "::set-output name=CACHE_KEY_LINT::${{ hashFiles('.github/workflows/lint/Dockerfile.ubuntu-20-04') }}"
             echo "::set-output name=DOCKER_FILE_POSTFIX::ubuntu-20-04"
@@ -112,7 +114,7 @@ jobs:
     # Fix for scacap/action-surefire-report out of memory error:
     # - https://github.com/ScaCap/action-surefire-report/issues/17
     env:
-      NODE_OPTIONS: '--max_old_space_size=4096'
+      NODE_OPTIONS: "--max_old_space_size=4096"
       DOCKER_FILE_POSTFIX: ${{ needs.workflow-setup.outputs.DOCKER_FILE_POSTFIX }}
     container:
       image: ghcr.io/${{ needs.workflow-setup.outputs.GITHUB_REPOSITORY_NAME }}/plenum-build:${{ needs.workflow-setup.outputs.DOCKER_FILE_POSTFIX }}
@@ -138,12 +140,13 @@ jobs:
       - name: Publish Test Report
         if: success() || failure()
         uses: scacap/action-surefire-report@v1.0.7
+        continue-on-error: true
         with:
           check_name: Indy Plenum ${{ matrix.module }} Test Report for slice ${{ matrix.slice }}/${{ strategy.job-total }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           report_paths: "*-test-results.xml"
 
-      - name: 'Upload Detailed Test Failure Results'
+      - name: "Upload Detailed Test Failure Results"
         # The test runner only emits the detailed test results if the tests fail.
         if: (steps.plenum-test.outcome == 'failure') && failure()
         uses: actions/upload-artifact@v2
@@ -177,6 +180,7 @@ jobs:
 
       - name: Publish Test Report
         uses: scacap/action-surefire-report@v1.0.7
+        continue-on-error: true
         with:
           check_name: Indy Plenum ${{ matrix.module }} Test Report
           github_token: ${{ secrets.GITHUB_TOKEN }}
